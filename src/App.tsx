@@ -1,5 +1,7 @@
 import { useState } from 'react';
+import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import Navbar from './components/Navbar';
+import ListingDetail from './components/ListingDetail';
 import ListingCard from './components/ListingCard';
 
 const listings = [
@@ -12,7 +14,7 @@ const listings = [
 
 const categories = ["All", "Guitar", "Drums", "Microphone", "Synths", "Audio Equipment"];
 
-function App() {
+function HomePage() {
   const [search, setSearch] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('All');
 
@@ -23,41 +25,50 @@ function App() {
   });
 
   return (
-    <div>
-      <Navbar />
-      <div style={{ padding: '24px' }}>
-        <input
-          type="text"
-          placeholder="Search instruments..."
-          value={search}
-          onChange={e => setSearch(e.target.value)}
-          style={{ padding: '8px', width: '300px', marginBottom: '16px', display: 'block' }}
-        />
-        <div style={{ display: 'flex', gap: '8px', marginBottom: '24px' }}>
-          {categories.map(cat => (
-            <button
-              key={cat}
-              onClick={() => setSelectedCategory(cat)}
-              style={{
-                padding: '8px 16px',
-                background: selectedCategory === cat ? 'white' : '#333',
-                color: selectedCategory === cat ? 'black' : 'white',
-                border: 'none',
-                borderRadius: '4px',
-                cursor: 'pointer'
-              }}
-            >
-              {cat}
-            </button>
-          ))}
-        </div>
-        <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap' }}>
-          {filtered.map(listing => (
-            <ListingCard key={listing.id} title={listing.title} price={listing.price} location={listing.location} category={listing.category} />
-          ))}
-        </div>
+    <div style={{ padding: '24px' }}>
+      <input
+        type="text"
+        placeholder="Search instruments..."
+        value={search}
+        onChange={e => setSearch(e.target.value)}
+        style={{ padding: '8px', width: '300px', marginBottom: '16px', display: 'block', background: '#1a1a1a', color: 'white', border: '1px solid #444' }}
+      />
+      <div style={{ display: 'flex', gap: '8px', marginBottom: '24px' }}>
+        {categories.map(cat => (
+          <button
+            key={cat}
+            onClick={() => setSelectedCategory(cat)}
+            style={{
+              padding: '8px 16px',
+              background: selectedCategory === cat ? 'white' : '#333',
+              color: selectedCategory === cat ? 'black' : 'white',
+              border: 'none',
+              borderRadius: '4px',
+              cursor: 'pointer'
+            }}
+          >
+            {cat}
+          </button>
+        ))}
+      </div>
+      <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap' }}>
+        {filtered.map(listing => (
+          <ListingCard key={listing.id} title={listing.title} price={listing.price} location={listing.location} category={listing.category} id={listing.id} />
+        ))}
       </div>
     </div>
+  );
+}
+
+function App() {
+  return (
+    <BrowserRouter>
+      <Navbar />
+      <Routes>
+        <Route path="/" element={<HomePage />} />
+        <Route path="/listing/:id" element={<ListingDetail />} />
+      </Routes>
+    </BrowserRouter>
   );
 }
 
