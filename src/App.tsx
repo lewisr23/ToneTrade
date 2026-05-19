@@ -3,6 +3,7 @@ import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import Navbar from './components/Navbar';
 import ListingDetail from './components/ListingDetail';
 import ListingCard from './components/ListingCard';
+import CreateListing from './components/CreateListing';
 
 const listings = [
   { id: 1, title: "Fender Stratocaster", price: 450, location: "London", category: "Guitar" },
@@ -67,6 +68,7 @@ function App() {
       <Routes>
         <Route path="/" element={<HomePage />} />
         <Route path="/listing/:id" element={<ListingDetail />} />
+        <Route path="/create" element={<CreateListing />} />
       </Routes>
     </BrowserRouter>
   );
