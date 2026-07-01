@@ -21,3 +21,9 @@
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+
+# Backend secrets
+backend/src/main/resources/application.properties
+
+# Maven build output
+backend/target/
