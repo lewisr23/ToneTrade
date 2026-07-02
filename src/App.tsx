@@ -81,6 +81,7 @@ function HomePage() {
             price={listing.price}
             location={listing.location}
             category={listing.category}
+            status={listing.status}
           />
         ))}
       </div>

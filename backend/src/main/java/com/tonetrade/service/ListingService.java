@@ -13,6 +13,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.stream.Stream;
 
 @Service
 @RequiredArgsConstructor
@@ -31,13 +32,17 @@ public class ListingService {
                 // Invalid category — treat as no filter
             }
         }
-        String searchParam = (search != null && !search.isBlank()) ? search : null;
 
         String searchLower = (search != null && !search.isBlank()) ? search.toLowerCase() : null;
 
-        return listingRepository
-            .findByFilters(ListingStatus.ACTIVE, category)
-            .stream()
+        // Active listings first, sold listings after — still visible (like eBay's
+        // sold items) but never ahead of what's actually buyable. Two separate
+        // queries + concat rather than one clever ORDER BY, so it's obvious what
+        // it does and there's no JPQL enum-literal risk.
+        List<Listing> active = listingRepository.findByFilters(ListingStatus.ACTIVE, category);
+        List<Listing> sold = listingRepository.findByFilters(ListingStatus.SOLD, category);
+
+        return Stream.concat(active.stream(), sold.stream())
             .filter(l -> searchLower == null || l.getTitle().toLowerCase().contains(searchLower))
             .map(ListingResponse::from)
             .toList();
