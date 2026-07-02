@@ -35,6 +35,9 @@ public class MessagingService {
         if (listing.getSeller().getId().equals(requestingUserId)) {
             throw new RuntimeException("Sellers can't message themselves about their own listing");
         }
+        if (listing.getStatus() == Listing.ListingStatus.SOLD) {
+            throw new RuntimeException("This listing has already sold");
+        }
 
         Conversation conversation = conversationRepository.findByListingIdAndBuyerId(listingId, requestingUserId)
             .orElseGet(() -> {
@@ -84,6 +87,9 @@ public class MessagingService {
             if (!conversation.getBuyer().getId().equals(senderId)) {
                 throw new RuntimeException("Only the buyer can make a price offer");
             }
+            if (conversation.getListing().getStatus() == Listing.ListingStatus.SOLD) {
+                throw new RuntimeException("This listing has already sold — offers are closed");
+            }
         }
 
         Message message = Message.builder()
@@ -125,6 +131,16 @@ public class MessagingService {
 
         message.setOfferStatus(accept ? Message.OfferStatus.ACCEPTED : Message.OfferStatus.DECLINED);
         messageRepository.save(message);
+
+        // Accepting an offer closes the deal: the listing is marked sold at the
+        // agreed price. Other pending offers on this listing (in other
+        // conversations) are left as-is — a known gap, not auto-declined.
+        if (accept) {
+            Listing listing = conversation.getListing();
+            listing.setStatus(Listing.ListingStatus.SOLD);
+            listing.setPrice(message.getOfferAmount());
+            listingRepository.save(listing);
+        }
 
         return MessageResponse.from(message);
     }

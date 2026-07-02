@@ -198,6 +198,7 @@ function ListingDetail() {
   if (error || !listing) return <div style={{ color: 'white', padding: '24px' }}>{error || 'Listing not found.'}</div>;
 
   const isSeller = user?.id === listing.sellerId;
+  const isSold = listing.status === 'SOLD';
 
   return (
     <div style={{ padding: '24px', color: 'white', maxWidth: '600px' }}>
@@ -209,7 +210,14 @@ function ListingDetail() {
       </button>
       <p style={{ color: '#888', margin: 0 }}>{listing.category}</p>
       <h1 style={{ margin: '8px 0' }}>{listing.title}</h1>
-      <h2 style={{ color: '#4caf50', margin: '0 0 16px' }}>£{listing.price}</h2>
+      <h2 style={{ color: '#4caf50', margin: '0 0 16px' }}>
+        £{listing.price}
+        {isSold && (
+          <span style={{ marginLeft: '12px', fontSize: '13px', fontWeight: 700, color: '#111', background: '#4caf50', padding: '3px 10px', borderRadius: '4px', verticalAlign: 'middle' }}>
+            SOLD
+          </span>
+        )}
+      </h2>
       <p style={{ color: '#aaa' }}>{listing.location}</p>
       <p style={{ color: '#aaa', fontSize: '14px' }}>
         Condition: {listing.condition} · Sold by {listing.sellerUsername}
@@ -217,7 +225,7 @@ function ListingDetail() {
       </p>
       <p style={{ lineHeight: '1.6' }}>{listing.description}</p>
 
-      {!isSeller && (
+      {!isSeller && !isSold && (
         <button
           onClick={handleMessageSeller}
           disabled={startingChat}
@@ -225,6 +233,9 @@ function ListingDetail() {
         >
           {startingChat ? 'Starting chat...' : 'Message Seller'}
         </button>
+      )}
+      {!isSeller && isSold && (
+        <p style={{ marginTop: '16px', color: '#666', fontSize: '14px' }}>This item has sold.</p>
       )}
 
       <PassportSection listingId={id!} isSeller={isSeller} />
