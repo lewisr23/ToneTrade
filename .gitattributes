@@ -1,0 +1,18 @@
+# Normalize all text files to LF in the repository, regardless of what OS
+# checked them in. Git still converts to CRLF on checkout for anyone with
+# core.autocrlf=true (the Windows default), so working-copy behaviour is
+# unchanged — this only fixes what's actually stored in git.
+* text=auto
+
+# Windows-only scripts should always stay CRLF
+*.bat text eol=crlf
+*.cmd text eol=crlf
+
+# Never touch line endings in binary files
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.woff binary
+*.woff2 binary
