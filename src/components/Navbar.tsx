@@ -21,6 +21,12 @@ function Navbar() {
           <>
             <span style={{ color: '#aaa', fontSize: '14px' }}>Hi, {user.username}</span>
             <button
+              onClick={() => navigate('/messages')}
+              style={{ padding: '10px 16px', background: 'none', color: '#aaa', border: '1px solid #444', borderRadius: '4px', cursor: 'pointer', fontSize: '14px' }}
+            >
+              Messages
+            </button>
+            <button
               onClick={() => navigate('/create')}
               style={{ padding: '10px 20px', background: '#4caf50', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '14px' }}
             >

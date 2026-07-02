@@ -161,6 +161,7 @@ function ListingDetail() {
   const [listing, setListing] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [startingChat, setStartingChat] = useState(false);
 
   useEffect(() => {
     fetch(`${API}/api/listings/${id}`)
@@ -171,6 +172,27 @@ function ListingDetail() {
       .then(data => { setListing(data); setLoading(false); })
       .catch(() => { setError('Listing not found.'); setLoading(false); });
   }, [id]);
+
+  const handleMessageSeller = async () => {
+    if (!user) { navigate('/login'); return; }
+    setStartingChat(true);
+    try {
+      const res = await fetch(`${API}/api/conversations`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${user.token}`,
+        },
+        body: JSON.stringify({ listingId: Number(id) }),
+      });
+      if (res.ok) {
+        const conv = await res.json();
+        navigate(`/messages/${conv.id}`);
+      }
+    } finally {
+      setStartingChat(false);
+    }
+  };
 
   if (loading) return <div style={{ color: 'white', padding: '24px' }}>Loading...</div>;
   if (error || !listing) return <div style={{ color: 'white', padding: '24px' }}>{error || 'Listing not found.'}</div>;
@@ -197,9 +219,11 @@ function ListingDetail() {
 
       {!isSeller && (
         <button
+          onClick={handleMessageSeller}
+          disabled={startingChat}
           style={{ marginTop: '16px', padding: '12px 24px', background: '#4caf50', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '16px' }}
         >
-          Message Seller
+          {startingChat ? 'Starting chat...' : 'Message Seller'}
         </button>
       )}
 

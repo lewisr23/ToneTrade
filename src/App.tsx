@@ -7,6 +7,7 @@ import ListingCard from './components/ListingCard';
 import CreateListing from './components/CreateListing';
 import Login from './components/Login';
 import Register from './components/Register';
+import MessagesPage from './components/Messages';
 
 const API = 'http://localhost:8080';
 
@@ -96,6 +97,8 @@ function App() {
           <Route path="/" element={<HomePage />} />
           <Route path="/listing/:id" element={<ListingDetail />} />
           <Route path="/create" element={<CreateListing />} />
+          <Route path="/messages" element={<MessagesPage />} />
+          <Route path="/messages/:id" element={<MessagesPage />} />
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
         </Routes>
