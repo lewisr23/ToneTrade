@@ -14,6 +14,7 @@ interface ChatMessage {
   content: string;
   messageType: 'TEXT' | 'PRICE_OFFER';
   offerAmount: number | null;
+  offerStatus: 'PENDING' | 'ACCEPTED' | 'DECLINED' | null;
   createdAt: string;
 }
 
@@ -26,6 +27,7 @@ interface ConversationSummary {
   otherUserId: number;
   otherUsername: string;
   otherVerified: boolean;
+  viewerIsSeller: boolean;
   lastMessagePreview: string | null;
   lastMessageAt: string;
   unreadCount: number;
@@ -103,7 +105,10 @@ function ChatPanel({
     client.onConnect = () => {
       client.subscribe(`/topic/conversations/${conversationId}`, frame => {
         const msg: ChatMessage = JSON.parse(frame.body);
-        setMessages(prev => [...prev, msg]);
+        setMessages(prev => {
+          const exists = prev.some(m => m.id === msg.id);
+          return exists ? prev.map(m => (m.id === msg.id ? msg : m)) : [...prev, msg];
+        });
         onActivity();
       });
     };
@@ -139,6 +144,13 @@ function ChatPanel({
     publish({ content: `Offer: £${amount}`, messageType: 'PRICE_OFFER', offerAmount: amount });
     setOfferAmount('');
     setOfferMode(false);
+  };
+
+  const respondToOffer = async (messageId: number, accept: boolean) => {
+    await fetch(`${API}/api/conversations/${conversationId}/messages/${messageId}/${accept ? 'accept' : 'decline'}`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${token}` },
+    });
   };
 
   const suggestions = conv
@@ -198,8 +210,39 @@ function ChatPanel({
                   fontSize: '14px',
                 }}
               >
-                {isOffer && <p style={{ margin: '0 0 4px', fontWeight: 700, color: '#4caf50' }}>Offer: £{m.offerAmount}</p>}
-                <p style={{ margin: 0 }}>{m.content}</p>
+                {isOffer && (
+                  <>
+                    <p style={{ margin: '0 0 4px', fontWeight: 700, color: '#4caf50' }}>Offer: £{m.offerAmount}</p>
+                    <p style={{ margin: 0 }}>{m.content}</p>
+
+                    {m.offerStatus === 'PENDING' && !mine && (
+                      <div style={{ display: 'flex', gap: '6px', marginTop: '8px' }}>
+                        <button
+                          onClick={() => respondToOffer(m.id, true)}
+                          style={{ padding: '4px 10px', background: '#4caf50', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '12px' }}
+                        >
+                          Accept
+                        </button>
+                        <button
+                          onClick={() => respondToOffer(m.id, false)}
+                          style={{ padding: '4px 10px', background: 'none', color: '#f44', border: '1px solid #f44', borderRadius: '4px', cursor: 'pointer', fontSize: '12px' }}
+                        >
+                          Decline
+                        </button>
+                      </div>
+                    )}
+                    {m.offerStatus === 'PENDING' && mine && (
+                      <p style={{ margin: '6px 0 0', fontSize: '12px', color: '#aaa' }}>Awaiting response...</p>
+                    )}
+                    {m.offerStatus === 'ACCEPTED' && (
+                      <p style={{ margin: '6px 0 0', fontSize: '12px', color: '#4caf50', fontWeight: 600 }}>Accepted</p>
+                    )}
+                    {m.offerStatus === 'DECLINED' && (
+                      <p style={{ margin: '6px 0 0', fontSize: '12px', color: '#f44', fontWeight: 600 }}>Declined</p>
+                    )}
+                  </>
+                )}
+                {!isOffer && <p style={{ margin: 0 }}>{m.content}</p>}
               </div>
               <p style={{ margin: '2px 4px 0', fontSize: '11px', color: '#666', textAlign: mine ? 'right' : 'left' }}>
                 {new Date(m.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
@@ -239,9 +282,11 @@ function ChatPanel({
               onKeyDown={e => e.key === 'Enter' && sendText(draft)}
               style={{ flex: 1, padding: '10px', background: '#1a1a1a', border: '1px solid #444', color: 'white', borderRadius: '4px' }}
             />
-            <button onClick={() => setOfferMode(true)} style={{ padding: '10px 16px', background: 'none', color: '#4caf50', border: '1px solid #4caf50', borderRadius: '4px', cursor: 'pointer' }}>
-              Make offer
-            </button>
+            {!conv?.viewerIsSeller && (
+              <button onClick={() => setOfferMode(true)} style={{ padding: '10px 16px', background: 'none', color: '#4caf50', border: '1px solid #4caf50', borderRadius: '4px', cursor: 'pointer' }}>
+                Make offer
+              </button>
+            )}
             <button onClick={() => sendText(draft)} style={{ padding: '10px 20px', background: '#4caf50', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer' }}>
               Send
             </button>

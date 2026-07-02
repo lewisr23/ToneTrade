@@ -37,6 +37,10 @@ public class Message {
     // Only set when messageType == PRICE_OFFER
     private BigDecimal offerAmount;
 
+    // Only set when messageType == PRICE_OFFER — null for plain TEXT messages
+    @Enumerated(EnumType.STRING)
+    private OfferStatus offerStatus;
+
     @Column(nullable = false)
     @Builder.Default
     private boolean readByRecipient = false;
@@ -47,5 +51,9 @@ public class Message {
 
     public enum MessageType {
         TEXT, PRICE_OFFER
+    }
+
+    public enum OfferStatus {
+        PENDING, ACCEPTED, DECLINED
     }
 }

@@ -23,6 +23,10 @@ public class ConversationResponse {
     private String otherUsername;
     private boolean otherVerified;
 
+    // True if the viewer is the seller on this listing — used by the client to
+    // hide "make offer" for sellers (only buyers propose a price).
+    private boolean viewerIsSeller;
+
     private String lastMessagePreview;
     private LocalDateTime lastMessageAt;
     private long unreadCount;
@@ -48,6 +52,7 @@ public class ConversationResponse {
         r.setOtherUserId(other.getId());
         r.setOtherUsername(other.getUsername());
         r.setOtherVerified(other.isVerified());
+        r.setViewerIsSeller(conversation.getSeller().getId().equals(viewerUserId));
 
         r.setLastMessagePreview(lastMessage != null ? lastMessage.getContent() : null);
         r.setLastMessageAt(conversation.getLastMessageAt());

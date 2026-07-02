@@ -77,8 +77,13 @@ public class MessagingService {
         if ((request.getContent() == null || request.getContent().isBlank()) && type != Message.MessageType.PRICE_OFFER) {
             throw new RuntimeException("Message content cannot be empty");
         }
-        if (type == Message.MessageType.PRICE_OFFER && request.getOfferAmount() == null) {
-            throw new RuntimeException("Price offer must include an amount");
+        if (type == Message.MessageType.PRICE_OFFER) {
+            if (request.getOfferAmount() == null) {
+                throw new RuntimeException("Price offer must include an amount");
+            }
+            if (!conversation.getBuyer().getId().equals(senderId)) {
+                throw new RuntimeException("Only the buyer can make a price offer");
+            }
         }
 
         Message message = Message.builder()
@@ -87,12 +92,39 @@ public class MessagingService {
             .content(request.getContent() != null ? request.getContent() : "")
             .messageType(type)
             .offerAmount(request.getOfferAmount())
+            .offerStatus(type == Message.MessageType.PRICE_OFFER ? Message.OfferStatus.PENDING : null)
             .build();
 
         messageRepository.save(message);
 
         conversation.setLastMessageAt(LocalDateTime.now());
         conversationRepository.save(conversation);
+
+        return MessageResponse.from(message);
+    }
+
+    @Transactional
+    public MessageResponse respondToOffer(Long conversationId, Long messageId, Long requestingUserId, boolean accept) {
+        Conversation conversation = getConversationForParticipant(conversationId, requestingUserId);
+
+        Message message = messageRepository.findById(messageId)
+            .orElseThrow(() -> new RuntimeException("Message not found: " + messageId));
+
+        if (!message.getConversation().getId().equals(conversation.getId())) {
+            throw new RuntimeException("Message does not belong to this conversation");
+        }
+        if (message.getMessageType() != Message.MessageType.PRICE_OFFER) {
+            throw new RuntimeException("Only price offers can be accepted or declined");
+        }
+        if (message.getSender().getId().equals(requestingUserId)) {
+            throw new RuntimeException("You can't respond to your own offer");
+        }
+        if (message.getOfferStatus() != Message.OfferStatus.PENDING) {
+            throw new RuntimeException("This offer has already been responded to");
+        }
+
+        message.setOfferStatus(accept ? Message.OfferStatus.ACCEPTED : Message.OfferStatus.DECLINED);
+        messageRepository.save(message);
 
         return MessageResponse.from(message);
     }

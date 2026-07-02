@@ -16,6 +16,7 @@ public class MessageResponse {
     private String content;
     private String messageType;
     private BigDecimal offerAmount;
+    private String offerStatus;
     private LocalDateTime createdAt;
 
     public static MessageResponse from(Message message) {
@@ -27,6 +28,7 @@ public class MessageResponse {
         r.setContent(message.getContent());
         r.setMessageType(message.getMessageType().name());
         r.setOfferAmount(message.getOfferAmount());
+        r.setOfferStatus(message.getOfferStatus() != null ? message.getOfferStatus().name() : null);
         r.setCreatedAt(message.getCreatedAt());
         return r;
     }

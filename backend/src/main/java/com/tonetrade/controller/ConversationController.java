@@ -68,6 +68,28 @@ public class ConversationController {
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
+    @PostMapping("/{id}/messages/{messageId}/accept")
+    public ResponseEntity<MessageResponse> acceptOffer(
+            @PathVariable Long id,
+            @PathVariable Long messageId,
+            @AuthenticationPrincipal UserDetails principal) {
+        User user = userRepository.findByEmail(principal.getUsername()).orElseThrow();
+        MessageResponse response = messagingService.respondToOffer(id, messageId, user.getId(), true);
+        messagingTemplate.convertAndSend("/topic/conversations/" + id, response);
+        return ResponseEntity.ok(response);
+    }
+
+    @PostMapping("/{id}/messages/{messageId}/decline")
+    public ResponseEntity<MessageResponse> declineOffer(
+            @PathVariable Long id,
+            @PathVariable Long messageId,
+            @AuthenticationPrincipal UserDetails principal) {
+        User user = userRepository.findByEmail(principal.getUsername()).orElseThrow();
+        MessageResponse response = messagingService.respondToOffer(id, messageId, user.getId(), false);
+        messagingTemplate.convertAndSend("/topic/conversations/" + id, response);
+        return ResponseEntity.ok(response);
+    }
+
     @PostMapping("/{id}/read")
     public ResponseEntity<Void> markRead(
             @PathVariable Long id,
