@@ -27,11 +27,15 @@ public class ConversationResponse {
     // hide "make offer" for sellers (only buyers propose a price).
     private boolean viewerIsSeller;
 
+    // True if the viewer has already endorsed the other participant as
+    // trustworthy — used by the client to hide the endorse button once used.
+    private boolean hasEndorsedOther;
+
     private String lastMessagePreview;
     private LocalDateTime lastMessageAt;
     private long unreadCount;
 
-    public static ConversationResponse from(Conversation conversation, Long viewerUserId, Message lastMessage, long unreadCount) {
+    public static ConversationResponse from(Conversation conversation, Long viewerUserId, Message lastMessage, long unreadCount, boolean hasEndorsedOther) {
         ConversationResponse r = new ConversationResponse();
         r.setId(conversation.getId());
         r.setListingId(conversation.getListing().getId());
@@ -53,6 +57,7 @@ public class ConversationResponse {
         r.setOtherUsername(other.getUsername());
         r.setOtherVerified(other.isVerified());
         r.setViewerIsSeller(conversation.getSeller().getId().equals(viewerUserId));
+        r.setHasEndorsedOther(hasEndorsedOther);
 
         r.setLastMessagePreview(lastMessage != null ? lastMessage.getContent() : null);
         r.setLastMessageAt(conversation.getLastMessageAt());

@@ -10,6 +10,7 @@ import com.tonetrade.entity.User;
 import com.tonetrade.repository.ConversationRepository;
 import com.tonetrade.repository.ListingRepository;
 import com.tonetrade.repository.MessageRepository;
+import com.tonetrade.repository.UserEndorsementRepository;
 import com.tonetrade.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -26,6 +27,7 @@ public class MessagingService {
     private final MessageRepository messageRepository;
     private final ListingRepository listingRepository;
     private final UserRepository userRepository;
+    private final UserEndorsementRepository userEndorsementRepository;
 
     @Transactional
     public ConversationResponse startOrGetConversation(Long listingId, Long requestingUserId) {
@@ -171,6 +173,12 @@ public class MessagingService {
         List<Message> messages = messageRepository.findByConversationIdOrderByCreatedAtAsc(conversation.getId());
         Message last = messages.isEmpty() ? null : messages.get(messages.size() - 1);
         long unread = messageRepository.countByConversationIdAndSenderIdNotAndReadByRecipientFalse(conversation.getId(), viewerUserId);
-        return ConversationResponse.from(conversation, viewerUserId, last, unread);
+
+        Long otherUserId = conversation.getBuyer().getId().equals(viewerUserId)
+            ? conversation.getSeller().getId()
+            : conversation.getBuyer().getId();
+        boolean hasEndorsedOther = userEndorsementRepository.existsByEndorserIdAndEndorsedId(viewerUserId, otherUserId);
+
+        return ConversationResponse.from(conversation, viewerUserId, last, unread, hasEndorsedOther);
     }
 }

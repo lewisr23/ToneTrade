@@ -28,6 +28,7 @@ interface ConversationSummary {
   otherUsername: string;
   otherVerified: boolean;
   viewerIsSeller: boolean;
+  hasEndorsedOther: boolean;
   lastMessagePreview: string | null;
   lastMessageAt: string;
   unreadCount: number;
@@ -81,6 +82,8 @@ function ChatPanel({
   const [draft, setDraft] = useState('');
   const [offerMode, setOfferMode] = useState(false);
   const [offerAmount, setOfferAmount] = useState('');
+  const [endorsing, setEndorsing] = useState(false);
+  const [endorseError, setEndorseError] = useState('');
   const clientRef = useRef<Client | null>(null);
   const bottomRef = useRef<HTMLDivElement | null>(null);
 
@@ -153,6 +156,26 @@ function ChatPanel({
     });
   };
 
+  const endorseOtherUser = async () => {
+    if (!conv) return;
+    setEndorsing(true);
+    setEndorseError('');
+    try {
+      const res = await fetch(`${API}/api/users/${conv.otherUserId}/endorse`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (res.ok) {
+        onActivity();
+      } else {
+        const body = await res.json().catch(() => null);
+        setEndorseError(body?.error || 'Could not endorse this user.');
+      }
+    } finally {
+      setEndorsing(false);
+    }
+  };
+
   const suggestions = conv
     ? [
         'Hi! Is this still available?',
@@ -165,13 +188,29 @@ function ChatPanel({
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
       {conv && (
         <div style={{ padding: '16px', borderBottom: '1px solid #333' }}>
-          <p style={{ margin: 0, fontWeight: 600 }}>
-            {conv.otherUsername}
-            {conv.otherVerified && <span style={{ color: '#4caf50', marginLeft: '8px', fontSize: '13px' }}>Verified</span>}
-          </p>
-          <p style={{ margin: 0, color: '#888', fontSize: '13px' }}>
-            {conv.listingTitle} · £{conv.listingPrice}
-          </p>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '12px' }}>
+            <div>
+              <p style={{ margin: 0, fontWeight: 600 }}>
+                {conv.otherUsername}
+                {conv.otherVerified && <span style={{ color: '#4caf50', marginLeft: '8px', fontSize: '13px' }}>Verified</span>}
+              </p>
+              <p style={{ margin: 0, color: '#888', fontSize: '13px' }}>
+                {conv.listingTitle} · £{conv.listingPrice}
+              </p>
+            </div>
+            {conv.hasEndorsedOther ? (
+              <span style={{ fontSize: '12px', color: '#4caf50', whiteSpace: 'nowrap' }}>Endorsed ✓</span>
+            ) : (
+              <button
+                onClick={endorseOtherUser}
+                disabled={endorsing}
+                style={{ padding: '6px 12px', background: 'none', color: '#4caf50', border: '1px solid #4caf50', borderRadius: '4px', cursor: 'pointer', fontSize: '12px', whiteSpace: 'nowrap' }}
+              >
+                {endorsing ? 'Endorsing...' : `Endorse ${conv.otherUsername}`}
+              </button>
+            )}
+          </div>
+          {endorseError && <p style={{ margin: '6px 0 0', color: '#f44', fontSize: '12px' }}>{endorseError}</p>}
         </div>
       )}
 
