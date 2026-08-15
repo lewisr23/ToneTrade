@@ -71,7 +71,14 @@ public class SecurityConfig {
             .sessionManagement(s -> s.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers("/api/auth/**").permitAll()
+                // Must come BEFORE the general GET /api/listings/** permitAll
+                // rule below — Spring Security uses first-match-wins, so this
+                // specific, more-restrictive rule has to be registered earlier
+                // or it would be shadowed and /saved would leak as public.
+                .requestMatchers(HttpMethod.GET, "/api/listings/saved").authenticated()
                 .requestMatchers(HttpMethod.GET, "/api/listings/**").permitAll()
+                .requestMatchers(HttpMethod.GET, "/api/users/*/profile").permitAll()
+                .requestMatchers(HttpMethod.GET, "/uploads/**").permitAll()
                 .requestMatchers("/ws/**").permitAll()
                 .anyRequest().authenticated()
             )

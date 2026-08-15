@@ -33,4 +33,14 @@ public class PassportController {
         User user = userRepository.findByEmail(principal.getUsername()).orElseThrow();
         return ResponseEntity.ok(passportService.addEntry(listingId, request, user.getId()));
     }
+
+    @PutMapping("/entries/{entryId}")
+    public ResponseEntity<PassportResponse> updateEntry(
+            @PathVariable Long listingId,
+            @PathVariable Long entryId,
+            @Valid @RequestBody PassportEntryRequest request,
+            @AuthenticationPrincipal UserDetails principal) {
+        User user = userRepository.findByEmail(principal.getUsername()).orElseThrow();
+        return ResponseEntity.ok(passportService.updateEntry(listingId, entryId, request, user.getId()));
+    }
 }

@@ -33,6 +33,32 @@ public class ListingResponse {
     private List<String> audioUrls;
     private List<String> videoUrls;
 
+    // Fair price indicator (proposal objective 8) — pricing context relative
+    // to other listings in the same category. Only populated on the single-
+    // listing detail endpoint (ListingService.getListingById), not the browse
+    // list, since the objective is scoped to "within individual listings" and
+    // computing it per-row on the browse grid would be an avoidable N+1.
+    // priceAssessment is one of: BELOW_AVERAGE, TYPICAL, ABOVE_AVERAGE, INSUFFICIENT_DATA
+    private String priceAssessment;
+    private BigDecimal categoryAveragePrice;
+    private int categorySampleSize;
+
+    // Secondary, supplementary signal: a rough typical resale price for a
+    // recognised specific model (e.g. "Fender Stratocaster"), matched against
+    // the listing title against a small hardcoded reference table. Deliberately
+    // NOT a live external pricing API — see ListingService.MODEL_REFERENCE_PRICES
+    // comment for the reasoning (ToS risk, reliability, no free aggregated
+    // secondhand-instrument pricing source exists). Null when no model matches.
+    private String referenceModelName;
+    private BigDecimal referenceModelPrice;
+
+    // Whether the current viewer has saved/bookmarked this listing. Same
+    // scoping rule as priceAssessment above: only populated on the
+    // single-listing detail endpoint (needs a viewerId, which the browse
+    // list doesn't compute per-row to avoid N+1). False for anonymous
+    // viewers and for the browse grid.
+    private boolean savedByViewer;
+
     public static ListingResponse from(Listing listing) {
         ListingResponse r = new ListingResponse();
         r.setId(listing.getId());
