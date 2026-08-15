@@ -1,46 +1,70 @@
-# Getting Started with Create React App
+# ToneTrade
 
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+A peer-to-peer marketplace for buying and selling secondhand musical instruments in the UK. Built to solve a problem generic marketplaces (Gumtree, Facebook Marketplace) don't: buyers can't verify an instrument's condition, sound, or history from a couple of photos and a text description, and there's no trust signal specific to musical gear.
 
-## Available Scripts
+MSc Computer Science (conversion) dissertation project, Newcastle University.
 
-In the project directory, you can run:
+## Why
 
-### `npm start`
+Backed by an 8-respondent survey of musicians who buy/sell gear secondhand: the recurring pain points were trust in the seller, uncertainty about an instrument's playing condition, and no way to hear or see it before travelling to view it. ToneTrade's feature set is built directly against those three, not a generic "clone eBay" checklist.
 
-Runs the app in the development mode.\
-Open [http://localhost:3000](http://localhost:3000) to view it in the browser.
+## Key features
 
-The page will reload if you make edits.\
-You will also see any lint errors in the console.
+- **Audio/video/photo demos** — sellers can upload sound clips and video walkthroughs alongside photos, not just static images, so buyers can hear how an instrument actually plays before contacting the seller.
+- **Gear History (instrument passport)** — a per-listing provenance timeline: repairs, modifications, ownership history, logged by the seller against the listing.
+- **Community verification** — a user becomes "verified" once endorsed by two or more people they've actually messaged through the platform, not strangers vouching for strangers. Endorsement is gated on a real prior conversation existing between the two accounts.
+- **Real-time messaging with price offers** — WebSocket chat (STOMP/SockJS) per listing, with inline buyer-only price offers and seller accept/decline. Accepting an offer marks the listing sold at the agreed price.
+- **Buy Now + checkout** — a direct purchase path at the listed price, alongside offer negotiation. Deliberately no payment processing: this is scoped as peer-to-peer (arrange payment directly), not a payments platform.
+- **Fair price indicator** — flags a listing as below/typical/above average against other listings in its category, plus a reference-price lookup for well-known instrument models. Deliberately not scraping live marketplace data for this (see Engineering notes below).
+- **Saved listings, seller profiles, follow** — the usual marketplace utilities, built on top of the trust/verification core rather than being the main pitch.
 
-### `npm test`
+## Tech stack
 
-Launches the test runner in the interactive watch mode.\
-See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
+**Backend:** Java 17, Spring Boot 3.2.5, Spring Security (JWT, HS256), Spring WebSocket (STOMP over SockJS), PostgreSQL, Spring Data JPA/Hibernate
 
-### `npm run build`
+**Frontend:** React 19 + TypeScript (Create React App), React Router, native `fetch`/WebSocket client (`@stomp/stompjs`), no heavy UI framework
 
-Builds the app for production to the `build` folder.\
-It correctly bundles React in production mode and optimizes the build for the best performance.
+## Engineering notes
 
-The build is minified and the filenames include the hashes.\
-Your app is ready to be deployed!
+A few decisions worth knowing the reasoning behind, since "what's built" matters less than "why it was built that way":
 
-See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
+- **WebSocket auth happens on the STOMP CONNECT frame, not the HTTP handshake.** SockJS's fallback transports don't reliably carry custom HTTP headers, so the JWT is read as a native STOMP header at CONNECT instead.
+- **Spring Security rule ordering is deliberate.** `authorizeHttpRequests` is first-match-wins, so specific `authenticated()` rules (e.g. `GET /api/listings/saved`) are registered before the broader `permitAll()` rule they'd otherwise be shadowed by.
+- **No payment processing, on purpose.** This is a peer-to-peer classifieds model (Gumtree-style), not an escrow/payments platform — that's a scope decision, not a missing feature.
+- **No live price-scraping for the fair price indicator, on purpose.** Scraping Reverb/eBay/Facebook Marketplace for live pricing was considered and rejected: no clean API exists, it's a ToS risk, and it's unreliable at demo time. The indicator instead uses a category-average comparison plus a small curated reference-price table, with the trade-off documented rather than hidden.
 
-### `npm run eject`
+## Getting started
 
-**Note: this is a one-way operation. Once you `eject`, you can’t go back!**
+**Prerequisites:** Node 18+, JDK 17, PostgreSQL, Maven
 
-If you aren’t satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
+### Backend
 
-Instead, it will copy all the configuration files and the transitive dependencies (webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you’re on your own.
+```
+cd backend
+# create a PostgreSQL database and add backend/src/main/resources/application.properties
+# (gitignored — not included in this repo, needs your own DB credentials)
+mvn spring-boot:run
+```
 
-You don’t have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn’t feel obligated to use this feature. However we understand that this tool wouldn’t be useful if you couldn’t customize it when you are ready for it.
+### Frontend
 
-## Learn More
+```
+npm install
+npm start
+```
 
-You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
+Runs on `http://localhost:3000`.
 
-To learn React, check out the [React documentation](https://reactjs.org/).
+Optional seed data (5 users, 18 listings across all categories, sample media) is provided at `backend/seed_data.sql`:
+
+```
+psql -U postgres -d tonetrade -f backend/seed_data.sql
+```
+
+## Screenshots
+
+<!-- Add screenshots here, e.g. ![Homepage](screenshots/homepage.png) -->
+
+## Author
+
+Lewis Robinson
