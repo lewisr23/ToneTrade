@@ -27,3 +27,6 @@ backend/src/main/resources/application.properties
 
 # Maven build output
 backend/target/
+
+# Uploaded instrument media (images/audio/video), local disk storage, not committed
+backend/uploads/

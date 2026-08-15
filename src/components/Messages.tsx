@@ -84,6 +84,7 @@ function ChatPanel({
   const [offerAmount, setOfferAmount] = useState('');
   const [endorsing, setEndorsing] = useState(false);
   const [endorseError, setEndorseError] = useState('');
+  const [respondingId, setRespondingId] = useState<number | null>(null);
   const clientRef = useRef<Client | null>(null);
   const bottomRef = useRef<HTMLDivElement | null>(null);
 
@@ -150,10 +151,32 @@ function ChatPanel({
   };
 
   const respondToOffer = async (messageId: number, accept: boolean) => {
-    await fetch(`${API}/api/conversations/${conversationId}/messages/${messageId}/${accept ? 'accept' : 'decline'}`, {
-      method: 'POST',
-      headers: { Authorization: `Bearer ${token}` },
-    });
+    setRespondingId(messageId);
+    try {
+      const res = await fetch(`${API}/api/conversations/${conversationId}/messages/${messageId}/${accept ? 'accept' : 'decline'}`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!res.ok) {
+        // This previously had no res.ok check and no catch at all -- any
+        // failure (the offer already responded to, listing already sold,
+        // network error) left the Accept/Decline buttons looking dead.
+        let detail = `Server responded ${res.status}`;
+        try {
+          const body = await res.json();
+          if (body?.error) detail = body.error;
+        } catch {
+          // response wasn't JSON -- stick with the status code
+        }
+        console.error('Failed to respond to offer:', detail);
+        alert(`Couldn't ${accept ? 'accept' : 'decline'} this offer: ${detail}`);
+      }
+    } catch (err) {
+      console.error('Failed to respond to offer:', err);
+      alert('Could not reach the server. Is the backend running?');
+    } finally {
+      setRespondingId(null);
+    }
   };
 
   const endorseOtherUser = async () => {
@@ -171,6 +194,11 @@ function ChatPanel({
         const body = await res.json().catch(() => null);
         setEndorseError(body?.error || 'Could not endorse this user.');
       }
+    } catch (err) {
+      // Only a raw network-level throw (backend down) was unhandled before --
+      // the res.ok branch above already surfaced normal rejection reasons.
+      console.error('Failed to endorse user:', err);
+      setEndorseError('Could not reach the server. Is the backend running?');
     } finally {
       setEndorsing(false);
     }
@@ -258,15 +286,17 @@ function ChatPanel({
                       <div style={{ display: 'flex', gap: '6px', marginTop: '8px' }}>
                         <button
                           onClick={() => respondToOffer(m.id, true)}
+                          disabled={respondingId === m.id}
                           style={{ padding: '4px 10px', background: '#4caf50', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '12px' }}
                         >
-                          Accept
+                          {respondingId === m.id ? '...' : 'Accept'}
                         </button>
                         <button
                           onClick={() => respondToOffer(m.id, false)}
+                          disabled={respondingId === m.id}
                           style={{ padding: '4px 10px', background: 'none', color: '#f44', border: '1px solid #f44', borderRadius: '4px', cursor: 'pointer', fontSize: '12px' }}
                         >
-                          Decline
+                          {respondingId === m.id ? '...' : 'Decline'}
                         </button>
                       </div>
                     )}

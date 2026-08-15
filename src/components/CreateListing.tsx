@@ -14,6 +14,18 @@ const categoryToEnum: Record<string, string> = {
 
 const conditionOptions = ['MINT', 'EXCELLENT', 'GOOD', 'FAIR', 'POOR'];
 
+async function uploadMedia(listingId: number, file: File, mediaType: 'IMAGE' | 'AUDIO' | 'VIDEO', token: string) {
+  const formData = new FormData();
+  formData.append('file', file);
+  formData.append('mediaType', mediaType);
+  const res = await fetch(`${API}/api/listings/${listingId}/media`, {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${token}` },
+    body: formData,
+  });
+  if (!res.ok) throw new Error(`Failed to upload ${file.name}`);
+}
+
 function CreateListing() {
   const navigate = useNavigate();
   const { user } = useAuth();
@@ -25,8 +37,12 @@ function CreateListing() {
     condition: 'GOOD',
     description: '',
   });
+  const [images, setImages] = useState<File[]>([]);
+  const [audioFiles, setAudioFiles] = useState<File[]>([]);
+  const [videoFiles, setVideoFiles] = useState<File[]>([]);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [uploadStatus, setUploadStatus] = useState('');
 
   if (!user) {
     return (
@@ -66,11 +82,51 @@ function CreateListing() {
         return;
       }
       const data = await res.json();
+
+      // Listing exists now — upload any media against it. Best-effort: if a
+      // file fails (too big, wrong type, network blip) we still take the
+      // user to their new listing rather than stranding them on this form,
+      // but we tell them what didn't make it.
+      const failed: string[] = [];
+      const allUploads: { file: File; mediaType: 'IMAGE' | 'AUDIO' | 'VIDEO' }[] = [
+        ...images.map(file => ({ file, mediaType: 'IMAGE' as const })),
+        ...audioFiles.map(file => ({ file, mediaType: 'AUDIO' as const })),
+        ...videoFiles.map(file => ({ file, mediaType: 'VIDEO' as const })),
+      ];
+
+      for (let i = 0; i < allUploads.length; i++) {
+        const { file, mediaType } = allUploads[i];
+        setUploadStatus(`Uploading ${i + 1}/${allUploads.length}: ${file.name}`);
+        try {
+          await uploadMedia(data.id, file, mediaType, user.token);
+        } catch {
+          failed.push(file.name);
+        }
+      }
+      setUploadStatus('');
+
+      if (failed.length > 0) {
+        // Still navigate — the listing was created successfully, media is
+        // secondary. Just let them know before we leave.
+        window.alert(`Listing posted, but these files failed to upload: ${failed.join(', ')}`);
+      }
+
       navigate(`/listing/${data.id}`);
     } catch {
       setError('Could not connect to server.');
     }
     setLoading(false);
+  };
+
+  const fileInputStyle = {
+    width: '100%',
+    padding: '10px',
+    marginBottom: '8px',
+    background: '#1a1a1a',
+    color: 'white',
+    border: '1px solid #444',
+    borderRadius: '4px',
+    boxSizing: 'border-box' as const,
   };
 
   return (
@@ -113,7 +169,32 @@ function CreateListing() {
           rows={4}
           style={{ width: '100%', padding: '10px', marginBottom: '24px', background: '#1a1a1a', color: 'white', border: '1px solid #444', borderRadius: '4px', resize: 'vertical', boxSizing: 'border-box' }} />
 
+        <label style={{ display: 'block', marginBottom: '4px', color: '#aaa' }}>Photos</label>
+        <input type="file" accept="image/*" multiple
+          onChange={e => setImages(e.target.files ? Array.from(e.target.files) : [])}
+          style={fileInputStyle} />
+        <p style={{ margin: '0 0 16px', color: '#666', fontSize: '12px' }}>
+          {images.length > 0 ? `${images.length} photo(s) selected` : 'Optional, but listings with photos get more interest.'}
+        </p>
+
+        <label style={{ display: 'block', marginBottom: '4px', color: '#aaa' }}>Audio demo</label>
+        <input type="file" accept="audio/*" multiple
+          onChange={e => setAudioFiles(e.target.files ? Array.from(e.target.files) : [])}
+          style={fileInputStyle} />
+        <p style={{ margin: '0 0 16px', color: '#666', fontSize: '12px' }}>
+          {audioFiles.length > 0 ? `${audioFiles.length} audio file(s) selected` : 'A short clip proving it actually sounds good.'}
+        </p>
+
+        <label style={{ display: 'block', marginBottom: '4px', color: '#aaa' }}>Video demo</label>
+        <input type="file" accept="video/*" multiple
+          onChange={e => setVideoFiles(e.target.files ? Array.from(e.target.files) : [])}
+          style={fileInputStyle} />
+        <p style={{ margin: '0 0 24px', color: '#666', fontSize: '12px' }}>
+          {videoFiles.length > 0 ? `${videoFiles.length} video file(s) selected` : 'Show it being played, and show any cosmetic damage up close.'}
+        </p>
+
         {error && <p style={{ color: '#f44', margin: '0 0 16px' }}>{error}</p>}
+        {uploadStatus && <p style={{ color: '#4caf50', margin: '0 0 16px', fontSize: '13px' }}>{uploadStatus}</p>}
 
         <button type="submit" disabled={loading}
           style={{ width: '100%', padding: '12px', background: '#4caf50', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '16px' }}>
